@@ -12,8 +12,8 @@ permissions:
   contents: write
 
 jobs:
-  test:
-    name: Test
+  happy-path:
+    name: test / happy path
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -38,3 +38,27 @@ jobs:
           if [[ "${NEXT:-0.0.0}" == "0.0.0" ]]; then
             exit 1
           fi
+
+  with-shallow-checkout:
+    name: test / with shallow checkout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.13
+      - run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com "
+          git config --global user.name "github-actions[bot]"
+      - run: |
+          git commit -m "feat: make dummy commit" --allow-empty
+      - id: cz
+        uses: ./
+        with:
+          dry-run: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      - run: |
+          echo "Composite action expected to fail"
+          exit 1
+        if: steps.cz.outcome != 'failure'
