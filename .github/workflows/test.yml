@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - run: |
+          git commit -m "feat: make dummy commit" --allow-empty
+      - id: cz
+        uses: ./
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          dry-run: true
+      - run: |
+          echo "version: ${{ steps.cz.outputs.next-version }}"

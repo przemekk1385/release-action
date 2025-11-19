@@ -1,0 +1,26 @@
+name: Next version
+description: Get the next version based on commits history
+author: Glamox
+
+inputs:
+  github-token:
+    description: GitHub token
+    required: true
+  dry-run:
+    description: Perform a dry run without creating release
+    required: false
+  prerelease:
+    description: Prerelease identifier (e.g. alpha, beta, rc)
+    required: false
+
+outputs:
+  version:
+    description: Next version
+
+runs:
+  using: docker
+  image: Dockerfile
+  env:
+    GH_TOKEN: ${{ inputs.github-token }}
+    DRY_RUN: ${{ inputs.dry-run }}
+    PRERELEASE: ${{ inputs.prerelease }}
