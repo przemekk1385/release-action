@@ -18,9 +18,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - id: release
-        uses: actions/hello-world-docker-action@main
+      - uses: actions/checkout@v5
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.13
+      - id: release
+        uses: przemekk1385/release-action@main
+        with:
           prerelease: beta
 ```

@@ -1,26 +1,99 @@
-name: Next version
-description: Get the next version based on commits history
+name: Release Action
+description: Calculate next version and generate GitHub release.
 author: Glamox
 
 inputs:
   github-token:
-    description: GitHub token
+    description: GitHub token for authentication
     required: true
   dry-run:
-    description: Perform a dry run without creating release
+    default: "false"
+    description: Perform a dry run without creating a release
     required: false
   prerelease:
-    description: Prerelease identifier (e.g. alpha, beta, rc)
+    description: Pre-release identifier
     required: false
 
 outputs:
   version:
-    description: Next version
+    description: Released version number
+    value: ${{ steps.cz.outputs.next-version }}
 
 runs:
-  using: docker
-  image: Dockerfile
-  env:
-    GH_TOKEN: ${{ inputs.github-token }}
-    DRY_RUN: ${{ inputs.dry-run }}
-    PRERELEASE: ${{ inputs.prerelease }}
+  using: composite
+  steps:
+    - run: |
+        DRY_RUN="${{ inputs.dry-run }}"
+
+        if [[ ! "${DRY_RUN}" =~ ^(false|true)$ ]]; then
+          echo "Error: dry-run input must be 'true' or 'false'"
+          exit 1
+        fi
+      shell: bash
+    - run: |
+        if [[ -f .git/shallow ]]; then
+          echo "Error: Repository is shallow. Please use 'fetch-depth: 0' in actions/checkout"
+          exit 1
+        fi
+      shell: bash
+    - run: |
+        if ! command -v python3 &> /dev/null; then
+          echo "Error: Python 3 is not installed"
+          exit 1
+        fi
+      shell: bash
+    - run: pip install commitizen
+      shell: bash
+    - id: cz
+      run: |
+        PRERELEASE="${{ inputs.prerelease }}"
+
+        if [[ -n "${PRERELEASE}" ]]; then
+          NEXT=$(cz bump \
+            --get-next \
+            --prerelease "${PRERELEASE}" \
+            --yes)
+        else
+          NEXT=$(cz bump \
+            --get-next \
+            --yes)
+        fi
+
+        echo "Next version: ${NEXT}"
+        echo "next-version=${NEXT}" >> $GITHUB_OUTPUT
+      shell: bash
+    - run: |
+        NEXT="${{ steps.cz.outputs.next-version }}"
+
+        LATEST=$(gh release list \
+          --exclude-pre-releases \
+          --json isLatest,tagName -q '.[] | select(.isLatest) | .tagName')
+
+        cz changelog \
+          --file-name ./CHANGELOG.md \
+          --start-rev "${LATEST:=0.0.0}" \
+          --unreleased "${NEXT}"
+    
+        cat ./CHANGELOG.md
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+    - if: inputs.dry-run == 'false'
+      run: |
+        PRERELEASE="${{ inputs.prerelease }}"
+        NEXT="${{ steps.cz.outputs.next-version }}"
+
+        if [[ -n "${PRERELEASE}" ]]; then
+          gh release create "${NEXT}" \
+            --notes-file "${NOTES_FILE}" \
+            --prerelease \
+            --title "${NEXT}"
+        else
+          gh release create "${NEXT}" \
+            --notes-file "${NOTES_FILE}" \
+            --title "${NEXT}"
+        fi
+      shell: bash
+      env:
+        NOTES_FILE: ./CHANGELOG.md
+        GH_TOKEN: ${{ inputs.github-token }}
