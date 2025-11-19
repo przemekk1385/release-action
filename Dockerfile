@@ -5,11 +5,11 @@ RUN git config \
     --global \
     --add safe.directory "*"
 
-WORKDIR /usr/src
+WORKDIR /github/workspace
 
 RUN python -m pip install --upgrade pip
 RUN python -m pip install commitizen
 
 COPY entrypoint.sh .
 
-ENTRYPOINT ["/usr/src/entrypoint.sh"]
+ENTRYPOINT ["/github/workspace/entrypoint.sh"]
