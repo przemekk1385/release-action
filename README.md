@@ -1,6 +1,8 @@
 # Release Action
 
-This action calculates the next version number using **commitizen** and creates release using **GitHub CLI**.
+This action:
+- calculates next version number using **commitizen**,
+- creates release using **GitHub CLI**.
 
 ## Usage
 
@@ -11,6 +13,9 @@ name: Example Workflow
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   release-beta:
@@ -27,5 +32,22 @@ jobs:
       - id: release
         uses: przemekk1385/release-action@main
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: beta
+      - run: |
+          echo "Released version: ${{ steps.release.outputs.version }}"
 ```
+
+## Inputs
+
+| Input          | Default | Description                                                 |
+|----------------|---------|-------------------------------------------------------------|
+| `github-token` | `""`    | GitHub token                                                |
+| `dry-run`      | `false` | If true, the action will only simulate the release creation |
+| `prerelease`   | `""`    | Pre-release identifier (e.g., alpha, beta)                  |
+
+## Outputs
+
+| Output    | Description             |
+|-----------| ----------------------- |
+| `version` | Released version number |
